@@ -162,3 +162,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# --- p3 专用 ---
+.workbuddy/          # IDE 工具状态/记忆文件
+.idea/               # PyCharm 工程文件
+output/              # 未来训练产出（adapter/checkpoint）
+*.gguf               # 模型权重（云端 2GB，走 scp 不入仓）
