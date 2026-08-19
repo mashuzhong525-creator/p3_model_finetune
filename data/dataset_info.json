@@ -1,0 +1,23 @@
+{
+  "p3_术语适配": {
+    "file_name": "alpaca_术语适配_60.json",
+    "formatting": "alpaca"
+  },
+  "p3_忠实回答": {
+    "file_name": "alpaca_忠实回答_75.json",
+    "formatting": "alpaca"
+  },
+  "p3_多片段整合": {
+    "file_name": "alpaca_多片段整合_45.json",
+    "formatting": "alpaca"
+  },
+  "p3_证据引用": {
+    "file_name": "alpaca_证据引用_60.json",
+    "formatting": "alpaca"
+  },
+  "p3_拒答": {
+    "file_name": "alpaca_拒答_60.json",
+    "formatting": "alpaca"
+  }
+}
+

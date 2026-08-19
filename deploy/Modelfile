@@ -1,0 +1,3 @@
+FROM /opt/p3/models/qwen3b-q4_k_m.gguf
+PARAMETER temperature 0.3
+PARAMETER num_ctx 2048
