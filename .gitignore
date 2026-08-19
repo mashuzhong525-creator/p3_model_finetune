@@ -167,3 +167,12 @@ cython_debug/
 .idea/               # PyCharm 工程文件
 output/              # 未来训练产出（adapter/checkpoint）
 *.gguf               # 模型权重（云端 2GB，走 scp 不入仓）
+
+.idea/
+.workbuddy/
+__pycache__/
+*.pyc
+.env
+*.log
+data/
+output/

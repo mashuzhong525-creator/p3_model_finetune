@@ -1,7 +1,10 @@
-# P3 部署与 P1 切换说明
+# P3 本地部署说明（v3：Windows Ollama）
 
-- 4C4G 安装 Ollama，`OLLAMA_HOST=0.0.0.0:8100`（systemd override，见 `deploy_ollama.sh`）
-- 模型：`ollama create finetuned-qwen -f Modelfile`（GGUF Q4_K_M 约 2GB）
-- 验证：`curl http://127.0.0.1:8100/v1/models`
-- P1 切换：`deploy/.env.prod` 配置 `LLM_BASE_URL=http://127.0.0.1:8100/v1`、`LLM_MODEL=finetuned-qwen`、`LLM_API_KEY=sk-p3-demo`，重启 `kb-app`，SSE 流尾 `model` 事件显示模型名
-- 切回：恢复 `.env.prod.bak-*` 或注释 `LLM_*` 回退 legacy `DEEPSEEK_*`
+1. 安装 Ollama Windows：https://ollama.com/download
+2. 设置系统环境变量 `OLLAMA_HOST=127.0.0.1:8100`，重启 Ollama
+3. 将云端回传的 `qwen1.5b-q4_k_m.gguf`（约 1GB）放到 `D:\p3\models\`
+4. 导入模型：`ollama create finetuned-qwen -f Modelfile`（FROM 指向本地 GGUF）
+5. 验证：`curl http://127.0.0.1:8100/v1/models` → 返回 `finetuned-qwen`
+6. 评估对比：`python ../eval/eval_runner.py`（配置 DEEPSEEK_* 环境变量）
+
+P1 线上接入：本次不做（本地推理无法被云端 P1 直接访问）；如需接入，走内网穿透（frp/ngrok）或 GGUF 双部署到 4C4G。

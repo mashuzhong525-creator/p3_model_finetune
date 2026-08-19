@@ -31,8 +31,8 @@ p3_model_finetune/
 ## 状态
 
 - 规格版本：v0.1（草稿）
-- 已确认：技术栈主干=方案A（本地训练 + 4C4G CPU 量化推理）；训练环境=本地 RTX 5060 8GB；不租 GPU 云
-- 已确认：基座 = Qwen2.5-3B-Instruct（2026-08-19 修订）；训练 = 云 GPU 服务器（租用）；推理 = 4C4G Ollama（OLLAMA_HOST=0.0.0.0:8100）；训练数据 = 300 条问答对
+- 已确认：技术栈主干=租用云 GPU 一天训练（AutoDL 按量，LoRA bf16 1.5B）+ 本地 Ollama 推理
+- 已确认：基座 = Qwen2.5-1.5B-Instruct（2026-08-19 三次修订）；推理 = 本地 Ollama（OLLAMA_HOST=127.0.0.1:8100）；训练数据 = 300 条问答对
 - 待确认：无（O1~O5 均已关闭）
 - 待确认项详见 `docs/产交流会议纪要.md` 第 3 节
 
@@ -41,10 +41,10 @@ p3_model_finetune/
 1. 确认开放问题 O1~O5（见产交流会议纪要）
 2. 搭建独立训练环境（conda env + LLaMA-Factory + 模型下载）
 3. 构建训练数据（≥300 条，五能力分层）
-4. 训练 → 合并/量化 → 部署 4C4G → 评估对比 → 接入 P1
+4. 租卡训练 → 量化回传 → 本地 Ollama 部署 → 评估对比（P1 线上不切换）
 
 ## 三步运行
 
-1. 训练：云 GPU 上执行 `llamafactory-cli train train/qwen3b_lora.yaml`
-2. 部署：4C4G 执行 `bash deploy/deploy_ollama.sh` 并 `ollama create finetuned-qwen -f deploy/Modelfile`
+1. 训练：`HOST=root@<云IP> bash train/upload_data.sh` → 云端 `bash train/prepare_data.sh` → `bash train/run_train.sh` → `bash train/export_quantize.sh` → scp 回本地
+2. 部署：本地安装 Ollama（`OLLAMA_HOST=127.0.0.1:8100`），`ollama create finetuned-qwen -f deploy/Modelfile`
 3. 评估：`python eval/eval_runner.py`（先配置 DEEPSEEK_* 环境变量）

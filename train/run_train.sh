@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# P3 一键训练：QLoRA 微调 Qwen2.5-3B-Instruct（云 GPU 服务器）
+# P3 一键训练：LoRA bf16 微调 Qwen2.5-1.5B-Instruct（云 GPU）
 P3_DIR="/root/autodl-tmp/p3"
-YAML="${P3_DIR}/qwen3b_lora.yaml"
+YAML="${P3_DIR}/qwen1.5b_lora.yaml"
 LOG="${P3_DIR}/train.log"
 
 echo "== 1/4 环境检查 =="

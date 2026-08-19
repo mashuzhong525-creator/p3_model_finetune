@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# 在云 GPU 服务器执行：注册 p3_train / p3_val 到 LLaMA-Factory
+# 云 GPU 执行：注册 p3_train / p3_val 到 LLaMA-Factory
 SRC="/root/autodl-tmp/p3/data"
 DST="/root/autodl-tmp/LLaMA-Factory/data"
 INFO="${DST}/dataset_info.json"
