@@ -1,4 +1,6 @@
-# P3 本地部署说明（v3：Windows Ollama）
+# P3 本地部署说明（存档：Ollama 备选）
+
+> 主路径已改为 **WSL2 + vLLM**（`local_train/本地WSL2-vLLM部署手册.md`）；本文件为 Ollama 备选存档，不再作为主路径。
 
 1. 安装 Ollama Windows：https://ollama.com/download
 2. 设置系统环境变量 `OLLAMA_HOST=127.0.0.1:8100`，重启 Ollama

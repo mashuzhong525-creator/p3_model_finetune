@@ -26,10 +26,10 @@ M6 文档与交付模块：docs/ + README + 交付清单，贯穿以上全部模
 | 模块 | 职责 | 关键目录/文件 |
 | --- | --- | --- |
 | M1 数据模块 | 语料、300 条 alpaca 数据、9:1 划分、格式契约校验 | `data/`、`tests/test_data_format.py` |
-| M2 训练模块 | QLoRA 训练配置与执行说明 | `train/qwen3b_lora.yaml`、`train/README.md` |
+| M2 训练模块 | LoRA bf16 训练配置与执行说明（本地） | `train/qwen1.5b_lora.yaml`、`train/*.ps1`、`train/README.md` |
 | M3 评估模块 | 金标准、M1~M4 评估、S1/S2/S3 | `eval/` |
-| M4 部署模块 | 4C4G Ollama 服务、GGUF 模型、OpenAI 兼容接口 | `deploy/` |
-| M5 P1 集成模块 | P1 LLM 切换、SSE model 事件、回退 | `p1_knowledge_platform/deploy/.env.prod` |
+| M4 部署模块 | 本地 WSL2 vLLM 服务、HF bf16 模型、OpenAI 兼容接口 | `deploy/`、`local_train/` |
+| M5 P1 集成模块 | 本地演示与评估（P1 线上不切换） | `eval/`、`deploy/README.md` |
 | M6 文档与交付模块 | 规格/纪要/计划/清单、截图 | `docs/`、`README.md` |
 
 ---
@@ -79,42 +79,45 @@ M6 文档与交付模块：docs/ + README + 交付清单，贯穿以上全部模
 
 ### 3.1 职责
 
-- 在云 GPU 上以 QLoRA 微调 Qwen2.5-3B-Instruct；
+- 在云 GPU（租卡一天）以 LoRA bf16 微调 Qwen2.5-1.5B-Instruct；
 - 产出训练日志、loss 曲线数据、LoRA 适配器权重。
 
 ### 3.2 边界
 
 - 输入：`data/train.json`、`data/val.json`（注册为 p3_train/p3_val）、基座模型目录
-- 输出：`output/qwen3b-lora/`（`adapter_config.json`、`adapter_model.safetensors`、`trainer_log.jsonl`）
-- 环境：云 GPU（≥24GB 显存），LLaMA-Factory（`pip install -e .`）
+- 输出：`output/qwen1.5b-lora/`（`adapter_config.json`、`adapter_model.safetensors`、`trainer_log.jsonl`）
+- 环境：云 GPU（AutoDL 按量，≥24GB 显存），LLaMA-Factory（`pip install -e .`）
 
 ### 3.3 管线脚本（`train/`）
 
 | 文件 | 说明 |
 | --- | --- |
-| `upload_data.sh` | 本地→云 GPU 上传 train/val 与 yaml（`HOST=root@<云IP> bash upload_data.sh`） |
-| `prepare_data.sh` | 云侧注册 p3_train/p3_val 到 dataset_info.json，并校验 train 270 / val 30 |
-| `run_train.sh` | 环境检查（nvidia-smi、llamafactory-cli）→ 数据检查 → 后台启动 QLoRA 训练 → 确认 loss |
-| `export_quantize.sh` | 合并 LoRA → GGUF(f16) → Q4_K_M 量化（产物约 2GB） |
+| `upload_data.sh` | 本地→云上传 train/val 与 yaml（`HOST=root@<云IP> bash upload_data.sh`） |
+| `run_train_local.ps1` | 本地一键训练（GPU/数据检查 + train_peft.py，Windows） |
+| `train_peft.py` / `merge_peft.py` | PEFT LoRA 训练主代码 / 合并（课程演示代码） |
+| `prepare_data.sh` / `run_train.sh`（可选） | 云端租卡训练备选（存档） |
+| `export_quantize.sh` | 合并 LoRA → GGUF(f16) → Q4_K_M 量化（产物约 1GB） |
+| `train_peft.py` | PEFT LoRA bf16 训练脚本（课程演示代码，与 LLaMA-Factory CLI 二选一） |
+| `merge_peft.py` | 合并 LoRA adapter 到基座，输出合并模型目录 |
 
-### 3.4 配置接口（`train/qwen3b_lora.yaml`）
+### 3.4 配置接口（`train/qwen1.5b_lora.yaml`）
 
 | 配置项 | 值 | 说明 |
 | --- | --- | --- |
-| `model_name_or_path` | `/root/autodl-tmp/models/Qwen2.5-3B-Instruct` | 基座 |
+| `model_name_or_path` | `D:/ai_models/Qwen2.5-1.5B-Instruct` | 基座（本地） |
 | `stage` / `finetuning_type` | `sft` / `lora` | 监督微调 + LoRA |
 | `lora_rank` / `lora_alpha` / `lora_target` | 16 / 32 / all | LoRA 超参 |
-| `quantization_bit` | 4 | QLoRA |
+| ~~`quantization_bit`~~ | —（LoRA bf16） | 无需 QLoRA |
 | `dataset` / `val_dataset` | p3_train / p3_val | LLaMA-Factory 注册名 |
 | `max_length` | 1024 | 序列上限 |
 | `per_device_train_batch_size` / `gradient_accumulation_steps` | 4 / 4 | 等效 batch=16 |
 | `learning_rate` / `num_train_epochs` / `lr_scheduler_type` | 1e-4 / 3.0 / cosine | 训练超参 |
-| `output_dir` | `/root/autodl-tmp/p3/output/qwen3b-lora` | 产物目录 |
+| `output_dir` | `D:/mashu77/workspace/project1/p3_model_finetune/train/output/qwen1.5b-lora` | 产物目录（本地） |
 
 ### 3.5 调用
 
 ```bash
-llamafactory-cli train /root/autodl-tmp/p3/qwen3b_lora.yaml
+python train_peft.py ...（或 `.\run_train_local.ps1`；LLaMA-Factory CLI 用 qwen1.5b_lora_local.yaml）
 ```
 
 ### 3.6 验收
@@ -134,7 +137,7 @@ llamafactory-cli train /root/autodl-tmp/p3/qwen3b_lora.yaml
 
 ### 4.2 边界
 
-- 输入：`golden_eval.json`、微调前模型（DeepSeek API）、微调后模型（Ollama `finetuned-qwen`）
+- 输入：`golden_eval.json`、微调前模型（DeepSeek API）、微调后模型（vLLM `finetuned-qwen`）
 - 输出：`对比报告.json`（两模型的 M1~M4）
 - 不包含：训练、部署
 
@@ -143,6 +146,8 @@ llamafactory-cli train /root/autodl-tmp/p3/qwen3b_lora.yaml
 | 文件 | 关键接口 |
 | --- | --- |
 | `eval/golden_eval.json` | 50 条；字段见 4.4；`requires_caution` 10 条 |
+| `eval/run_s1.py` | S1 静态校验：schema + 证据编号 + caution 统计（`python run_s1.py`） |
+| `eval/demo_chat.py` | 本地问答演示：调用 vLLM OpenAI 兼容端点（`--question` / `--context`） |
 | `eval/mock_llm.py` | `mock_chat(prompt) -> str`；`validate_output(item, output) -> dict`；`__main__` 内置伪造引用自测 |
 | `eval/eval_runner.py` | `call_llm(base_url, api_key, model, instruction, ctx) -> str`；`score(item, output) -> dict`；`run(base_url, api_key, model) -> dict`；`__main__` 对比 DeepSeek vs finetuned-qwen 并写报告 |
 | `eval/README.md` | 运行说明与纪律（S3 未跑须标注「未经实机」） |
@@ -185,22 +190,21 @@ llamafactory-cli train /root/autodl-tmp/p3/qwen3b_lora.yaml
 
 ### 5.1 职责
 
-- 在 4C4G 服务器用 Ollama 提供 OpenAI 兼容端点；
+- 在本地 WSL2（Ubuntu）用 vLLM 提供 OpenAI 兼容端点；
 - 托管微调模型 GGUF（Q4_K_M）。
 
 ### 5.2 边界
 
-- 输入：`qwen3b-q4_k_m.gguf`（约 2GB，来自云 GPU 量化）
-- 输出：`http://0.0.0.0:8100/v1/*` OpenAI 兼容接口
-- 环境：4C4G Linux 服务器（已运行 P1）
+- 输入：`qwen1.5b-q4_k_m.gguf`（约 1GB，来自云端量化回传）
+- 输出：`http://127.0.0.1:8100/v1/*` OpenAI 兼容接口
+- 环境：本地 WSL2（Ubuntu）+ RTX 5060 8GB（Ollama CPU/GPU 为备选）
 
 ### 5.3 文件与接口
 
 | 文件 | 说明 |
 | --- | --- |
-| `deploy/deploy_ollama.sh` | 安装 Ollama；systemd override 固定 `OLLAMA_HOST=0.0.0.0:8100`、`OLLAMA_KEEP_ALIVE=10m`；重启服务 |
-| `deploy/Modelfile` | `FROM /opt/p3/models/qwen3b-q4_k_m.gguf`；`temperature 0.3`；`num_ctx 2048` |
-| `deploy/README.md` | 部署与 P1 切换说明 |
+| `deploy/Modelfile` | `FROM D:\p3\models\qwen1.5b-q4_k_m.gguf`；`temperature 0.3`；`num_ctx 2048` |
+| `deploy/README.md` | 本地部署说明（安装、OLLAMA_HOST、导入、验证） |
 
 ### 5.4 对外接口（契约，冻结）
 
@@ -213,13 +217,13 @@ llamafactory-cli train /root/autodl-tmp/p3/qwen3b_lora.yaml
 
 ### 5.5 降级与风险
 
-- 内存不足（4GB 总量）：`num_ctx` 降至 1024 或增加 swap；
-- 模型未加载：Ollama 按需加载，`OLLAMA_KEEP_ALIVE=10m` 控制驻留。
+- 本地资源：1.5B Q4 约 1GB，GPU 或 CPU 均可跑；资源紧张时 `num_ctx` 降至 1024；
+- 模型加载：vLLM 常驻并受 `--gpu-memory-utilization` 控制显存占用；Ollama 备选按需加载。
 
 ### 5.6 验收
 
 - `curl http://127.0.0.1:8100/v1/models` 返回 `finetuned-qwen`；
-- chat/completions 返回可解析内容；`free -m` 无 OOM。
+- chat/completions 返回可解析内容（GPU/CPU 均可）。
 
 ---
 
@@ -227,28 +231,28 @@ llamafactory-cli train /root/autodl-tmp/p3/qwen3b_lora.yaml
 
 ### 6.1 职责
 
-- 让 P1 问答链路切换到微调模型并验证 SSE `model` 事件；
-- 支持一键回退 DeepSeek。
+- 本地加载微调模型 `finetuned-qwen` 并验证 OpenAI 兼容端点；
+- 支撑本地问答演示与 eval_runner 四指标对比（P1 线上不切换）。
 
 ### 6.2 接口（env 映射，冻结）
 
 | P1 配置 | 微调接入值 |
 | --- | --- |
-| `LLM_API_KEY` | `sk-p3-demo`（与 Ollama 鉴权一致） |
-| `LLM_BASE_URL` | `http://127.0.0.1:8100/v1` |
+| `LLM_API_KEY` | `sk-p3-demo`（与 vLLM `--api-key` 一致） |
+| `LLM_BASE_URL` | `http://127.0.0.1:8100/v1`（本地演示用） |
 | `LLM_MODEL` | `finetuned-qwen` |
 
-### 6.3 切换/回退流程
+### 6.3 本地演示流程
 
-1. 备份：`cp deploy/.env.prod deploy/.env.prod.bak-$(date +%F)`
-2. 写入上述三行 → `docker compose restart kb-app`
-3. 验证：SSE 流尾 `model` 事件 = `finetuned-qwen`
-4. 回退：恢复备份或注释 `LLM_*`（回退 legacy `DEEPSEEK_*`）→ 重启
+1. WSL2 内 `bash local_train/setup_wsl2_vllm.sh` 安装 vLLM；
+2. `bash local_train/serve_vllm_wsl2.sh` 启动 `vllm serve --port 8100`；
+3. 验证：`curl http://127.0.0.1:8100/v1/models` → `finetuned-qwen`；
+4. 对比：`eval_runner.py`（DeepSeek ↔ finetuned-qwen）产出四指标报告。
 
 ### 6.4 验收
 
-- 页面显示 `[模型] finetuned-qwen`；
-- 切回后 `model` 事件恢复 `deepseek-chat`。
+- 本地 `/v1/models` 返回 `finetuned-qwen`；
+- 本地问答演示与对比报告产出。
 
 ---
 
@@ -256,7 +260,7 @@ llamafactory-cli train /root/autodl-tmp/p3/qwen3b_lora.yaml
 
 | 契约 | 值 |
 | --- | --- |
-| 推理端口 | `8100`（Ollama `OLLAMA_HOST=0.0.0.0:8100`） |
+| 推理端口 | `8100`（本地 vLLM `--port 8100`，WSL2） |
 | 服务模型名 | `finetuned-qwen` |
 | 数据输出契约 | P1 `c_rag_answer.prompt` 六条规则（见 `prompts/P1-C-RAG-ANSWER-输出契约.md`） |
 | 向量维度 | 切换 BGE-M3 需清 `data/vectors` 重新导入（本方案沿用现状） |
@@ -268,8 +272,8 @@ llamafactory-cli train /root/autodl-tmp/p3/qwen3b_lora.yaml
 | 规格验收项 | 归属模块 | 状态 |
 | --- | --- | --- |
 | 300 条数据 + 格式校验 | M1 | ✅ 已完成（pytest 5 passed） |
-| 真实训练 + 日志/loss/权重 | M2 | ⏳ 待云 GPU 执行 |
+| 真实训练 + 日志/loss/权重 | M2 | ⏳ 待本地执行（RTX 5060 8GB） |
 | 金标准 50 条 + M1~M4 + S1/S2/S3 | M3 | ✅ S1/S2 完成；⏳ S3 待部署后执行 |
-| Ollama 8100 + /v1/models | M4 | ⏳ 待 4C4G 执行 |
-| P1 切换 + SSE model 事件 | M5 | ⏳ 待 4C4G 执行 |
+| vLLM 8100 + /v1/models | M4 | ⏳ 待本地执行（WSL2） |
+| 本地演示 + 对比报告 | M5 | ⏳ 待本地执行（P1 线上不切换） |
 | 截图与 README | M6 | ⏳ 待各模块完成后补齐 |

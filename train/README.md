@@ -1,5 +1,6 @@
 # P3 训练说明（v3：租卡一天，训练云端、推理本地）
 
+- 本地微调（Windows，RTX 5060 8GB）：见 `本地微调-代码与参数.md`（代码 + 参数 + 步骤）
 - 环境：云 GPU（AutoDL 按量，RTX 3090/4090 皆可），LLaMA-Factory（`pip install -e .`）
 - 基座：Qwen/Qwen2.5-1.5B-Instruct（ModelScope 下载）
 - 数据：`../data/train.json`（270）/ `val.json`（30），注册为 `p3_train` / `p3_val`

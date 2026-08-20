@@ -31,8 +31,8 @@ p3_model_finetune/
 ## 状态
 
 - 规格版本：v0.1（草稿）
-- 已确认：技术栈主干=租用云 GPU 一天训练（AutoDL 按量，LoRA bf16 1.5B）+ 本地 Ollama 推理
-- 已确认：基座 = Qwen2.5-1.5B-Instruct（2026-08-19 三次修订）；推理 = 本地 Ollama（OLLAMA_HOST=127.0.0.1:8100）；训练数据 = 300 条问答对
+- 已确认：技术栈主干=本地训练（RTX 5060 8GB，LoRA bf16 1.5B）+ 本地 WSL2 vLLM 推理
+- 已确认：基座 = Qwen2.5-1.5B-Instruct（2026-08-19 五次修订）；推理 = 本地 WSL2 vLLM（8100，Ollama 弃用）；训练数据 = 300 条问答对
 - 待确认：无（O1~O5 均已关闭）
 - 待确认项详见 `docs/产交流会议纪要.md` 第 3 节
 
@@ -45,6 +45,6 @@ p3_model_finetune/
 
 ## 三步运行
 
-1. 训练：`HOST=root@<云IP> bash train/upload_data.sh` → 云端 `bash train/prepare_data.sh` → `bash train/run_train.sh` → `bash train/export_quantize.sh` → scp 回本地
-2. 部署：本地安装 Ollama（`OLLAMA_HOST=127.0.0.1:8100`），`ollama create finetuned-qwen -f deploy/Modelfile`
+1. 训练：`.\train\run_train_local.ps1`（先 `local_train\setup_local_train_env.ps1` 建环境 + ModelScope 下载模型；详见 `train/本地微调-代码与参数.md`）
+2. 部署：WSL2 内 `bash local_train/setup_wsl2_vllm.sh` → `bash local_train/serve_vllm_wsl2.sh`（8100；详见 `local_train/本地WSL2-vLLM部署手册.md`）
 3. 评估：`python eval/eval_runner.py`（先配置 DEEPSEEK_* 环境变量）
